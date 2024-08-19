@@ -86,7 +86,9 @@ passport.use(
         );
       }
     } catch (err) {
-      return done("Error retrieving connected client from pool");
+      return done(
+        "Error retrieving connected client from pool in Local Strategy"
+      );
     }
   })
 );
@@ -101,11 +103,80 @@ passport.use(
       userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
       passReqToCallback: true,
     },
-    (req, accessToken, requestToken, profile, done) => {
+    async (req, accessToken, requestToken, profile, done) => {
       try {
-        return done(null, { username: profile.email });
+        const username = profile.email;
+        const client = await pool.connect();
+        try {
+          const result = await client.query(
+            "SELECT * FROM users WHERE email = $1 AND password = $2",
+            [username, "GOOGLE"]
+          );
+          client.release();
+          if (result.rows.length == 0) {
+            return done(null, false);
+          } else {
+            return done(null, { username });
+          }
+        } catch (err) {
+          return done(
+            "Error retrieving user info from database for google Google Strategy"
+          );
+        }
       } catch (err) {
-        return done(err);
+        return done(
+          "Error retrieving connected client from pool in google Google Strategy"
+        );
+      }
+    }
+  )
+);
+
+passport.use(
+  "google-register",
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "http://localhost:3000/auth/google/login",
+      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+      passReqToCallback: true,
+    },
+    async (req, accessToken, requestToken, profile, done) => {
+      try {
+        const username = profile.email;
+        const client = await pool.connect();
+        try {
+          const result = await client.query(
+            "SELECT * FROM users WHERE email = $1",
+            [username]
+          );
+          if (result.rows.length > 0) {
+            client.release();
+            return done(null, false);
+          } else {
+            try {
+              await client.query("INSERT INTO users VALUES ($1, $2)", [
+                username,
+                "GOOGLE",
+              ]);
+              client.release();
+              return done(null, { username });
+            } catch (err) {
+              return done(
+                "Error inserting user info from database for google-register Google Strategy"
+              );
+            }
+          }
+        } catch (err) {
+          return done(
+            "Error retrieving user info from database for google-register Google Strategy"
+          );
+        }
+      } catch (err) {
+        return done(
+          "Error retrieving connected client from pool in google-register Google Strategy"
+        );
       }
     }
   )
@@ -129,7 +200,7 @@ app.get("/", serveReact);
 
 app.get("/auth", serveReact);
 
-app.post("/register", async (req, res) => {
+app.post("/register/local", async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   const confirmedPassword = req.body["confirm-password"];
@@ -147,25 +218,35 @@ app.post("/register", async (req, res) => {
           [username]
         );
         if (result.rows.length > 0) {
+          client.release();
           res.json({
             success: false,
             usernameMessage: "Email already in use!",
           });
         } else {
-          bcrypt.hash(password, saltRounds, (err, hash) => {
+          bcrypt.hash(password, saltRounds, async (err, hash) => {
             if (err) {
               console.error("Trouble generating Bcrypt hash");
             }
-            client.query("INSERT INTO users VALUES ($1, $2)", [username, hash]);
-            client.release();
-            req.login({ username }, (err) => {
-              if (err) {
-                console.error(
-                  "Trouble authenticating using Passport Local Strategy"
-                );
-              }
-              res.json({ success: true });
-            });
+            try {
+              await client.query("INSERT INTO users VALUES ($1, $2)", [
+                username,
+                hash,
+              ]);
+              client.release();
+              req.login({ username }, (err) => {
+                if (err) {
+                  console.error(
+                    "Trouble authenticating using Passport Local Strategy"
+                  );
+                }
+                res.json({ success: true });
+              });
+            } catch (err) {
+              console.error(
+                "Error inserting user info from database for /register/local route"
+              );
+            }
           });
         }
       } catch (err) {
@@ -174,10 +255,20 @@ app.post("/register", async (req, res) => {
         );
       }
     } catch (err) {
-      console.error("Error retrieving connected client from pool");
+      console.error(
+        "Error retrieving connected client from pool in /register/local route"
+      );
     }
   }
 });
+
+app.get(
+  "/register/google",
+  passport.authenticate("google-register", {
+    scope: ["profile", "email"],
+    state: "google-register",
+  })
+);
 
 app.post(
   "/auth/local",
@@ -191,16 +282,24 @@ app.get(
   "/auth/google",
   passport.authenticate("google", {
     scope: ["profile", "email"],
+    state: "google",
   })
 );
 
-app.get(
-  "/auth/google/login",
-  passport.authenticate("google", {
-    successRedirect: "/",
-    failureRedirect: "/auth",
-  })
-);
+app.get("/auth/google/login", (req, res, next) => {
+  const strategy = req.query.state;
+  if (strategy === "google") {
+    passport.authenticate("google", {
+      successRedirect: "/",
+      failureRedirect: "/auth",
+    })(req, res, next);
+  } else {
+    passport.authenticate("google-register", {
+      successRedirect: "/",
+      failureRedirect: "/auth",
+    })(req, res, next);
+  }
+});
 
 /*********************************{ Start Server}******************************/
 app.listen(port, () => {

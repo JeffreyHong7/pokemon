@@ -26,7 +26,7 @@ export default function Authenticate() {
         <hr />
       </div>
       <div id="oauth">
-        <Google />
+        <Google login={login} />
       </div>
     </section>
   );
