@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <header>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <!--import Font-->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <!--Import stylesheets-->
+    <link rel="stylesheet" href="/styles/authenticate.css" />
+  </header>
+  <body>
+    <img src="/assets/lugia.gif" />
+    <h1>Log in!</h1>
+    <form action="/login/local" method="post">
+      <div class="labelled-input">
+        <label for="username" class="roboto-bold">Email</label>
+        <input type="text" id="username" name="username" />
+      </div>
+      <div class="labelled-input">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" />
+      </div>
+      <input type="submit" value="Submit" />
+    </form>
+    <p>or</p>
+    <button onclick="window.location.assign('/login/google')">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        fill="currentColor"
+        class="bi bi-google"
+        viewBox="0 0 16 16"
+      >
+        <path
+          d="M15.545 6.558a9.4 9.4 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.7 7.7 0 0 1 5.352 2.082l-2.284 2.284A4.35 4.35 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.8 4.8 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.7 3.7 0 0 0 1.599-2.431H8v-3.08z"
+        />
+      </svg>
+      Continue with Google
+    </button>
+    <p>Don't have an account? <a href="/register">Sign Up!</a></p>
+    <p id="error"><%= locals.error ? error : ""%></p>
+  </body>
+</html>
