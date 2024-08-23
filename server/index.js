@@ -37,6 +37,8 @@ const sessionStore = new PgSession({
   cleanupInterval: 1000 * 60 * 60,
 });
 
+const apiURL = "https://pokeapi.co/api/v2/";
+
 /*************************{ Initialize Middleware }****************************/
 app.use(express.static(join(path, "public")));
 app.use(
@@ -87,6 +89,7 @@ passport.use(
             }
           });
         } catch (err) {
+          client.release();
           console.error(err.stack);
           return done(
             "Error retrieving user info from database for local login route"
@@ -133,6 +136,7 @@ passport.use(
             }
           }
         } catch (err) {
+          client.release();
           return done(
             "Error retrieving user info from database for google Google Strategy"
           );
@@ -181,12 +185,14 @@ passport.use(
               client.release();
               return done(null, { username });
             } catch (err) {
+              client.release();
               return done(
                 "Error inserting user info from database for google-register Google Strategy"
               );
             }
           }
         } catch (err) {
+          client.release();
           return done(
             "Error retrieving user info from database for google-register Google Strategy"
           );
@@ -210,7 +216,7 @@ passport.deserializeUser((user, cb) => {
 });
 
 /***********************{ Initialize Route handlers }**************************/
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   if (req.isAuthenticated()) {
     res.render("index.ejs");
   } else {
@@ -272,6 +278,7 @@ app.post("/register/local", async (req, res) => {
                 res.render("/");
               });
             } catch (err) {
+              client.release();
               console.error(
                 "Error inserting user info from database for /register/local route"
               );
@@ -279,6 +286,7 @@ app.post("/register/local", async (req, res) => {
           });
         }
       } catch (err) {
+        client.release();
         console.error(
           "Error retrieving user info from database for register route"
         );
