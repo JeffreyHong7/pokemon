@@ -1,0 +1,98 @@
+header {
+  width: 100vw;
+}
+
+#top {
+  height: 15vh;
+  width: 100vw;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #9cace6;
+}
+
+#logo {
+  width: 200px;
+  margin-left: 1rem;
+}
+
+#search {
+  display: flex;
+}
+
+#search input {
+  height: 6vh;
+  width: 25vw;
+  border: 0;
+  padding: 0 0 0 0.75rem;
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  color: #29318b;
+  font-size: 1.5rem;
+}
+
+#search input:focus {
+  outline: none;
+}
+
+#search button {
+  height: 6vh;
+  width: 6vh;
+  border: 0;
+  background-color: white;
+  padding: 0;
+  cursor: pointer;
+}
+
+#search svg {
+  height: 3vh;
+  width: 3vh;
+  color: #29318b;
+}
+
+#cart-div {
+  width: 200px;
+  margin-right: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#cart {
+  background-color: inherit;
+  border: inherit;
+  cursor: pointer;
+  height: 10vh;
+  width: 10vh;
+  color: #29318b;
+}
+
+#cart svg {
+  height: 8vh;
+  width: 8vh;
+}
+
+#bottom {
+  height: 8vh;
+  background-color: #d5e6f6;
+  display: flex;
+  gap: 5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+#bottom button {
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  background-color: white;
+  color: #29318b;
+  height: 5vh;
+  border: 0;
+  cursor: pointer;
+  width: 10vw;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}

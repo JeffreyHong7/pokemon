@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily</title>
+    <!-- Import Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Import stylesheets -->
+    <link href="/styles/header.css" rel="stylesheet" />
+    <link href="/styles/account.css" rel="stylesheet" />
+  </head>
+  <body>
+    <%- include("../partials/header.ejs")%>
+    <section id="account">
+      <div id="my-pokemon">
+        <% for (var i = 0; i < pokemon.length; i++) {%>
+        <div class="pokemon">
+          <ul>
+            <li>Pokedex Number: <%= pokemon[i].pokedex_number %></li>
+            <li>Name: <%= pokemon[i].name %></li>
+            <li>Primary Type: <%= pokemon[i].ptype %></li>
+            <li>Secondary Type: <%= pokemon[i].stype %></li>
+          </ul>
+        </div>
+        <%}%>
+      </div>
+    </section>
+    <%- include("../partials/footer.ejs")%>
+  </body>
+</html>

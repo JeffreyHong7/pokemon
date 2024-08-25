@@ -10,6 +10,7 @@ import passport from "passport";
 import LocalStrategy from "passport-local";
 import bcrypt from "bcrypt";
 import GoogleStrategy from "passport-google-oauth2";
+import axios from "axios";
 
 /*******************{ Initialize Important Variables }*************************/
 const app = express();
@@ -37,7 +38,7 @@ const sessionStore = new PgSession({
   cleanupInterval: 1000 * 60 * 60,
 });
 
-const apiURL = "https://pokeapi.co/api/v2/";
+const apiURL = "http://localhost:3001";
 
 /*************************{ Initialize Middleware }****************************/
 app.use(express.static(join(path, "public")));
@@ -182,6 +183,10 @@ passport.use(
                 username,
                 "GOOGLE",
               ]);
+              await client.query(
+                "INSERT INTO owners (owner, pokemon) VALUES ($1, $2)",
+                [username, JSON.stringify({})]
+              );
               client.release();
               return done(null, { username });
             } catch (err) {
@@ -215,126 +220,217 @@ passport.deserializeUser((user, cb) => {
   cb(null, user);
 });
 
+/****************{ Initialize Authentication Route handlers }******************/
+app.get("/login", (req, res) => {
+  if (req.isAuthenticated()) {
+    res.redirect("/");
+  } else {
+    const error = req.session.error;
+    req.session.error = null;
+    res.render("authentication/login.ejs", { error });
+  }
+});
+
+app.get("/register", (req, res) => {
+  if (req.isAuthenticated()) {
+    res.redirect("/");
+  } else {
+    const error = req.session.error;
+    req.session.error = null;
+    res.render("authentication/register.ejs", { error });
+  }
+});
+
+app.post("/register/local", async (req, res) => {
+  if (req.isAuthenticated()) {
+    res.redirect("/");
+  } else {
+    const username = req.body.username;
+    const password = req.body.password;
+    const confirmedPassword = req.body["confirm-password"];
+    if (password != confirmedPassword) {
+      res.render("authentication/register.ejs", {
+        error: "Password fields do not match!",
+      });
+    } else {
+      try {
+        const client = await pool.connect();
+        try {
+          const result = await client.query(
+            "SELECT * FROM users WHERE email = $1",
+            [username]
+          );
+          if (result.rows.length > 0) {
+            client.release();
+            res.render("authentication/register.ejs", {
+              error:
+                result.rows[0].password === "GOOGLE"
+                  ? "Email is registered as a Google account"
+                  : "Email is already registered",
+            });
+          } else {
+            bcrypt.hash(password, saltRounds, async (err, hash) => {
+              if (err) {
+                console.error("Trouble generating Bcrypt hash");
+              }
+              try {
+                await client.query("INSERT INTO users VALUES ($1, $2)", [
+                  username,
+                  hash,
+                ]);
+                await client.query(
+                  "INSERT INTO owners (owner, pokemon) VALUES ($1, $2)",
+                  [username, JSON.stringify({})]
+                );
+                client.release();
+                req.login({ username }, (err) => {
+                  if (err) {
+                    console.error(
+                      "Trouble authenticating using Passport Local Strategy"
+                    );
+                  }
+                  res.redirect("/");
+                });
+              } catch (err) {
+                client.release();
+                console.error(
+                  "Error inserting user info from database for /register/local route"
+                );
+              }
+            });
+          }
+        } catch (err) {
+          client.release();
+          console.error(
+            "Error retrieving user info from database for register route"
+          );
+        }
+      } catch (err) {
+        console.error(
+          "Error retrieving connected client from pool in /register/local route"
+        );
+      }
+    }
+  }
+});
+
+app.get("/register/google", (req, res, next) => {
+  if (req.isAuthenticated()) {
+    res.redirect("/");
+  } else {
+    passport.authenticate("google-register", {
+      scope: ["profile", "email"],
+      state: "google-register",
+    })(req, res, next);
+  }
+});
+
+app.post("/login/local", (req, res, next) => {
+  if (req.isAuthenticated()) {
+    res.redirect("/");
+  } else {
+    passport.authenticate("local", {
+      successRedirect: "/",
+      failureRedirect: "/login",
+    })(req, res, next);
+  }
+});
+
+app.get("/login/google", (req, res, next) => {
+  if (req.isAuthenticated()) {
+    res.redirect("/");
+  } else {
+    passport.authenticate("google", {
+      scope: ["profile", "email"],
+      state: "google",
+    })(req, res, next);
+  }
+});
+
+app.get("/login/google/redirect", (req, res, next) => {
+  if (req.isAuthenticated()) {
+    res.redirect("/");
+  } else {
+    const strategy = req.query.state;
+    if (strategy === "google") {
+      passport.authenticate("google", {
+        successRedirect: "/",
+        failureRedirect: "/login",
+      })(req, res, next);
+    } else {
+      passport.authenticate("google-register", {
+        successRedirect: "/",
+        failureRedirect: "/register",
+      })(req, res, next);
+    }
+  }
+});
+
 /***********************{ Initialize Route handlers }**************************/
 app.get("/", async (req, res) => {
   if (req.isAuthenticated()) {
-    res.render("index.ejs");
+    try {
+      const client = await pool.connect();
+      try {
+        try {
+          const firstResponse = await axios.get(`${apiURL}/pokemon?id=249`);
+          const secondResponse = await axios.get(`${apiURL}/pokemon?id=${382}`);
+          const thirdResponse = await axios.get(`${apiURL}/pokemon?id=${383}`);
+          res.render("pages/index.ejs", {
+            firstResponse: {
+              src: firstResponse.data.image,
+              value: firstResponse.data.pokedex_number,
+            },
+            secondResponse: {
+              src: secondResponse.data.image,
+              value: secondResponse.data.pokedex_number,
+            },
+            thirdResponse: {
+              src: thirdResponse.data.image,
+              value: thirdResponse.data.pokedex_number,
+            },
+          });
+        } catch (err) {
+          console.error("Error retrieving API data");
+        }
+      } catch (err) {}
+    } catch (err) {
+      console.error("Error retrieving connected client from pool in / route");
+    }
   } else {
     res.redirect("/login");
   }
 });
 
-app.get("/login", (req, res) => {
-  const error = req.session.error;
-  req.session.error = null;
-  res.render("login.ejs", { error });
-});
-
-app.get("/register", (req, res) => {
-  const error = req.session.error;
-  req.session.error = null;
-  res.render("register.ejs", { error });
-});
-
-app.post("/register/local", async (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
-  const confirmedPassword = req.body["confirm-password"];
-  if (password != confirmedPassword) {
-    res.render("register.ejs", { error: "Password fields do not match!" });
+app.get("/sell", async (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render("pages/sell.ejs");
   } else {
-    try {
-      const client = await pool.connect();
-      try {
-        const result = await client.query(
-          "SELECT * FROM users WHERE email = $1",
-          [username]
-        );
-        if (result.rows.length > 0) {
-          client.release();
-          res.render("register.ejs", {
-            error:
-              result.rows[0].password === "GOOGLE"
-                ? "Email is registered as a Google account"
-                : "Email is already registered",
-          });
-        } else {
-          bcrypt.hash(password, saltRounds, async (err, hash) => {
-            if (err) {
-              console.error("Trouble generating Bcrypt hash");
-            }
-            try {
-              await client.query("INSERT INTO users VALUES ($1, $2)", [
-                username,
-                hash,
-              ]);
-              client.release();
-              req.login({ username }, (err) => {
-                if (err) {
-                  console.error(
-                    "Trouble authenticating using Passport Local Strategy"
-                  );
-                }
-                res.render("/");
-              });
-            } catch (err) {
-              client.release();
-              console.error(
-                "Error inserting user info from database for /register/local route"
-              );
-            }
-          });
-        }
-      } catch (err) {
-        client.release();
-        console.error(
-          "Error retrieving user info from database for register route"
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Error retrieving connected client from pool in /register/local route"
-      );
-    }
+    res.redirect("/login");
   }
 });
 
-app.get(
-  "/register/google",
-  passport.authenticate("google-register", {
-    scope: ["profile", "email"],
-    state: "google-register",
-  })
-);
-
-app.post(
-  "/login/local",
-  passport.authenticate("local", {
-    successRedirect: "/",
-    failureRedirect: "/login",
-  })
-);
-
-app.get(
-  "/login/google",
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-    state: "google",
-  })
-);
-
-app.get("/login/google/redirect", (req, res, next) => {
-  const strategy = req.query.state;
-  if (strategy === "google") {
-    passport.authenticate("google", {
-      successRedirect: "/",
-      failureRedirect: "/login",
-    })(req, res, next);
+app.get("/daily", async (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render("pages/daily.ejs");
   } else {
-    passport.authenticate("google-register", {
-      successRedirect: "/",
-      failureRedirect: "/register",
-    })(req, res, next);
+    res.redirect("/login");
+  }
+});
+
+app.get("/account", async (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render("pages/account.ejs");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/cart", async (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render("pages/cart.ejs");
+  } else {
+    res.redirect("/login");
   }
 });
 

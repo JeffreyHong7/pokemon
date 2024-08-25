@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Poké-commerce</title>
+    <!-- Import Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Import stylesheets -->
+    <link href="/styles/header.css" rel="stylesheet" />
+    <link href="/styles/styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <%- include("../partials/header.ejs") %>
+    <section id="home">
+      <div id="recommended">
+        <div id="best">
+          <img src="<%=firstResponse.src%>" alt="Best Pokémon" />
+        </div>
+        <div class="deal">
+          <img src="<%=secondResponse.src%>" alt="First Deal" />
+        </div>
+        <div class="deal">
+          <img src="<%=thirdResponse.src%>" alt="Second Deal" />
+        </div>
+        <div id="combo"></div>
+      </div>
+      <button id="poke-button">
+        <img class="poke-ball" src="/assets/closed.png" />
+        <img class="poke-ball hide" src="/assets/opened.png" />
+      </button>
+    </section>
+    <%- include("../partials/footer.ejs") %>
+    <!-- Import scripts -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+      integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script src="/scripts/index.js" charset="utf-8"></script>
+  </body>
+</html>

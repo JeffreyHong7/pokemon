@@ -35,6 +35,7 @@ app.get("/pokemon", async (req, res) => {
           [parseInt(id)]
         );
         client.release();
+        // make sure at least Pokémon is registered
         if (result.rows.length) {
           res.json(result.rows[0]);
         } else {
@@ -48,6 +49,7 @@ app.get("/pokemon", async (req, res) => {
           [name.toLowerCase().trim()]
         );
         client.release();
+        // make sure at least Pokémon is registered
         if (result.rows.length) {
           res.json(result.rows[0]);
         } else {
@@ -56,8 +58,12 @@ app.get("/pokemon", async (req, res) => {
           });
         }
       } else {
-        const result = await client.query("SELECT * FROM pokemon");
+        // fetch random Pokémon
+        const result = await client.query(
+          "SELECT * FROM pokemon ORDER BY RANDOM() LIMIT 1"
+        );
         client.release();
+        // make sure there is at least one registered Pokémon
         if (result.rows.length) {
           res.json(result.rows[Math.floor(Math.random() * result.rows.length)]);
         } else {
@@ -99,6 +105,7 @@ app.get("/legendary", async (req, res) => {
         [true]
       );
       client.release();
+      // make sure at least one registered Pokémon exists
       if (result.rows.length) {
         res.json(result.rows);
       } else {
@@ -139,6 +146,7 @@ app.get("/mythical", async (req, res) => {
         [true]
       );
       client.release();
+      // make sure at least one registered Pokémon exists
       if (result.rows.length) {
         res.json(result.rows);
       } else {
@@ -180,6 +188,7 @@ app.get("/ptype/:type", async (req, res) => {
         [ptype]
       );
       client.release();
+      // make sure at least one registered Pokémon exists
       if (result.rows.length) {
         res.json(result.rows);
       } else {
@@ -225,6 +234,7 @@ app.get("/stype/:type", async (req, res) => {
         [stype]
       );
       client.release();
+      // make sure at least one registered Pokémon exists
       if (result.rows.length) {
         res.json(result.rows);
       } else {
@@ -318,6 +328,7 @@ app.post("/register/:id", async (req, res) => {
   } else {
     const id = req.params.id;
     try {
+      // get Pokémon data from PokéAPI
       const firstResponse = await axios.get(
         `https://pokeapi.co/api/v2/pokemon/${parseInt(id)}/`
       );
@@ -329,6 +340,7 @@ app.post("/register/:id", async (req, res) => {
       try {
         const client = await pool.connect();
         try {
+          // make sure Pokémon to register is not already registered
           const result = await client.query(
             "SELECT * FROM pokemon WHERE pokedex_number = $1",
             [firstData.id]
@@ -429,6 +441,7 @@ app.delete("/delete/:id", async (req, res) => {
     try {
       const client = await pool.connect();
       try {
+        // make sure Pokémon to delete is registered
         const result = await client.query(
           "SELECT * FROM pokemon WHERE pokedex_number = $1",
           [id]
@@ -456,7 +469,7 @@ app.delete("/delete/:id", async (req, res) => {
           res.status(404).json({
             error: {
               status: 404,
-              message: "Pokemon to delete is not registered",
+              message: "Pokémon to delete is not registered",
             },
           });
         }
@@ -510,6 +523,7 @@ app.patch("/update/:id", async (req, res) => {
       // make sure user specified which field to update
       if (quantity || shinyQuantity) {
         try {
+          // make sure Pokémon to update is registered
           const result = await client.query(
             "SELECT * FROM pokemon WHERE pokedex_number = $1",
             [id]
@@ -544,7 +558,7 @@ app.patch("/update/:id", async (req, res) => {
             res.status(404).json({
               error: {
                 status: 404,
-                message: "Pokemon to update is not registered",
+                message: "Pokémon to update is not registered",
               },
             });
           }
