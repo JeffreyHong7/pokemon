@@ -1,0 +1,21 @@
+footer {
+  background-color: #d5e6f6;
+  height: 15vh;
+}
+
+footer {
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  color: #29318b;
+}
+
+footer p {
+  position: relative;
+  top: 0.5rem;
+  left: 0.5rem;
+}
+
+footer a {
+  text-decoration: none;
+}

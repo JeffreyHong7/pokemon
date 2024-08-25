@@ -43,7 +43,6 @@ button {
   font-size: 1rem;
 }
 
-input[type="submit"],
 button {
   cursor: pointer;
   width: 15vw;

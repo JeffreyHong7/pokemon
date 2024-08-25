@@ -185,7 +185,7 @@ passport.use(
               ]);
               await client.query(
                 "INSERT INTO owners (owner, pokemon) VALUES ($1, $2)",
-                [username, JSON.stringify({})]
+                [username, JSON.stringify([])]
               );
               client.release();
               return done(null, { username });
@@ -280,7 +280,7 @@ app.post("/register/local", async (req, res) => {
                 ]);
                 await client.query(
                   "INSERT INTO owners (owner, pokemon) VALUES ($1, $2)",
-                  [username, JSON.stringify({})]
+                  [username, JSON.stringify([])]
                 );
                 client.release();
                 req.login({ username }, (err) => {
@@ -366,6 +366,14 @@ app.get("/login/google/redirect", (req, res, next) => {
   }
 });
 
+app.get("/logout", (req, res) => {
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.redirect("/");
+  });
+});
 /***********************{ Initialize Route handlers }**************************/
 app.get("/", async (req, res) => {
   if (req.isAuthenticated()) {
@@ -420,7 +428,35 @@ app.get("/daily", async (req, res) => {
 
 app.get("/account", async (req, res) => {
   if (req.isAuthenticated()) {
-    res.render("pages/account.ejs");
+    try {
+      const email = req.user.username;
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          "SELECT * FROM owners WHERE owner = $1",
+          [email]
+        );
+        client.release();
+        if (result.rows.length) {
+          res.render("pages/account.ejs", {
+            pokemon: [],
+          }); //result.rows[0].pokemon });
+        } else {
+          console.error(
+            "Owner does not exist for some reason in /account route"
+          );
+        }
+      } catch (err) {
+        client.release();
+        console.error(
+          "Error retrieving owner's pokemon from database in /account route"
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Error retrieving connected client from pool in /account route"
+      );
+    }
   } else {
     res.redirect("/login");
   }
