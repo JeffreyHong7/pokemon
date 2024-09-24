@@ -183,10 +183,6 @@ passport.use(
                 username,
                 "GOOGLE",
               ]);
-              await client.query(
-                "INSERT INTO owners (owner, pokemon) VALUES ($1, $2)",
-                [username, JSON.stringify([])]
-              );
               client.release();
               return done(null, { username });
             } catch (err) {
@@ -278,10 +274,6 @@ app.post("/register/local", async (req, res) => {
                   username,
                   hash,
                 ]);
-                await client.query(
-                  "INSERT INTO owners (owner, pokemon) VALUES ($1, $2)",
-                  [username, JSON.stringify([])]
-                );
                 client.release();
                 req.login({ username }, (err) => {
                   if (err) {
@@ -374,6 +366,7 @@ app.get("/logout", (req, res) => {
     res.redirect("/");
   });
 });
+
 /***********************{ Initialize Route handlers }**************************/
 app.get("/", async (req, res) => {
   if (req.isAuthenticated()) {
@@ -418,6 +411,93 @@ app.get("/sell", async (req, res) => {
   }
 });
 
+app.post("/sell/search", async (req, res) => {
+  if (req.isAuthenticated()) {
+    try {
+      const id = req.body.id;
+      const name = req.body.name;
+      const response = await axios.get(
+        `${apiURL}/pokemon?${id ? `id=${id}` : `name=${name}`}`
+      );
+      try {
+        const client = await pool.connect();
+        try {
+          const result = await client.query(
+            "SELECT * FROM owned WHERE pokedex_number = $1 AND owner = $2",
+            [response.data.pokedex_number, req.user.username]
+          );
+          client.release();
+          if (result.rows.length) {
+            try {
+              res.render("pages/sell.ejs", {
+                pokemon: {
+                  ...response.data,
+                  quantity: result.rows[0].quantity,
+                  quantity_shiny: result.rows[0].quantity_shiny,
+                },
+              });
+            } catch (err) {
+              console.error(
+                "Error retrieving owner's pokemon from API in /sell/search route"
+              );
+            }
+          } else {
+            res.render("pages/sell.ejs", {
+              error: "No such Pokémon owned by this user!",
+            });
+          }
+        } catch {
+          client.release();
+          console.error(
+            "Error retrieving owner's pokemon from database in /sell/search route"
+          );
+        }
+      } catch (err) {
+        console.error(
+          "Error retrieving connected client from pool in /sell/search route"
+        );
+      }
+    } catch (err) {
+      res.render("pages/sell.ejs", {
+        error: "No such Pokémon owned by this user!",
+      });
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.post("/sell/sold", async (req, res) => {
+  try {
+    const email = req.user.username;
+    const pokedex_number = req.body.id;
+    const new_quantity =
+      parseInt(req.body["quantity-owned"]) -
+      parseInt(req.body["quantity-sell"]);
+    const new_shiny_quantity =
+      parseInt(req.body["quantity-shiny-owned"]) -
+      parseInt(req.body["quantity-shiny-sell"]);
+    const client = await pool.connect();
+    try {
+      await client.query(
+        "UPDATE owned SET quantity = $1, quantity_shiny = $2 WHERE owner = $3 AND pokedex_number = $4",
+        [new_quantity, new_shiny_quantity, email, pokedex_number]
+      );
+      client.release();
+      res.redirect("/");
+    } catch (err) {
+      client.release();
+      console.error(
+        "Error updating owner's pokemon in database in /sell/sold route"
+      );
+    }
+  } catch (err) {
+    console.error(
+      "Error retrieving connected client from pool in /sell/sold route"
+    );
+  }
+});
+
 app.get("/daily", async (req, res) => {
   if (req.isAuthenticated()) {
     res.render("pages/daily.ejs");
@@ -433,17 +513,26 @@ app.get("/account", async (req, res) => {
       const client = await pool.connect();
       try {
         const result = await client.query(
-          "SELECT * FROM owners WHERE owner = $1",
+          "SELECT * FROM owned WHERE owner = $1",
           [email]
         );
         client.release();
-        if (result.rows.length) {
-          res.render("pages/account.ejs", {
-            pokemon: [],
-          }); //result.rows[0].pokemon });
-        } else {
+        const pokemon = [];
+        try {
+          for (var i = 0; i < result.rows.length; i++) {
+            const response = await axios.get(
+              `${apiURL}/pokemon?id=${result.rows[i].pokedex_number}`
+            );
+            pokemon.push({
+              ...response.data,
+              quantity: result.rows[i].quantity,
+              quantity_shiny: result.rows[i].quantity_shiny,
+            });
+          }
+          res.render("pages/account.ejs", { pokemon });
+        } catch (err) {
           console.error(
-            "Owner does not exist for some reason in /account route"
+            "Error retrieving owner's pokemon from API in /account route"
           );
         }
       } catch (err) {

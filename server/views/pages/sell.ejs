@@ -13,8 +13,139 @@
     />
     <!-- Import stylesheets -->
     <link href="/styles/header.css" rel="stylesheet" />
+    <link href="/styles/sell.css" rel="stylesheet" />
+    <link href="/styles/footer.css" rel="stylesheet" />
   </head>
   <body>
-    <h1>Hello Sell!</h1>
+    <%- include("../partials/header.ejs")%>
+    <section id="sell">
+      <h1>
+        <%= locals.pokemon ? "Currently Selling..." : "Search for a Pokémon to "
+        + "Sell by..." %>
+      </h1>
+      <% if (!locals.pokemon) { %>
+      <form method="post" action="/sell/search" id="search-form">
+        <label for="id">Pokédex Number</label>
+        <input
+          type="number"
+          id="id"
+          name="id"
+          placeholder="1-1025"
+          min="1"
+          max="1025"
+        />
+        <h2>Or...</h2>
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Lugia" />
+        <button>Search</button>
+      </form>
+      <h2 id="error"><%=locals.error && error%></h2>
+      <% } else {%>
+      <div id="pokemon-sell">
+        <div class="pokemon">
+          <div class="pokemon-image">
+            <img
+              src="<%= pokemon.image%>"
+              alt="image of the Pokémon to be sold"
+            />
+            <%= (pokemon.legendary || pokemon.mythical) ? "🟡" : "⚪" %>
+          </div>
+          <ul>
+            <li>Pokédex Number: <%= pokemon.pokedex_number %></li>
+            <li>
+              Name: <%= pokemon.name[0].toUpperCase() + pokemon.name.slice(1) %>
+            </li>
+            <li>
+              Primary Type: <%= pokemon.primary_type[0].toUpperCase() +
+              pokemon.primary_type.slice(1) %>
+            </li>
+            <li>
+              Secondary Type: <%= pokemon.secondary_type[0].toUpperCase() +
+              pokemon.secondary_type.slice(1) %>
+            </li>
+            <li>Owned: <%= pokemon.quantity %></li>
+          </ul>
+        </div>
+        <div class="pokemon">
+          <div class="pokemon-image">
+            <img
+              src="<%= pokemon.image_shiny%>"
+              alt="image of the Pokémon to be sold"
+            />
+            <%= (pokemon.legendary || pokemon.mythical) ? "🟡✨" : "⚪✨" %>
+          </div>
+          <ul>
+            <li>Pokédex Number: <%= pokemon.pokedex_number %></li>
+            <li>
+              Name: <%= pokemon.name[0].toUpperCase() + pokemon.name.slice(1) %>
+            </li>
+            <li>
+              Primary Type: <%= pokemon.primary_type[0].toUpperCase() +
+              pokemon.primary_type.slice(1) %>
+            </li>
+            <li>
+              Secondary Type: <%= pokemon.secondary_type[0].toUpperCase() +
+              pokemon.secondary_type.slice(1) %>
+            </li>
+            <li>Owned: <%= pokemon.quantity_shiny %></li>
+          </ul>
+        </div>
+      </div>
+      <form method="post" action="/sell/sold" id="sell-form">
+        <input type="hidden" name="id" value="<%= pokemon.pokedex_number%>" />
+        <input
+          type="hidden"
+          name="quantity-owned"
+          value="<%= pokemon.quantity%>"
+        />
+        <input
+          type="hidden"
+          name="quantity-shiny-owned"
+          value="<%= pokemon.quantity_shiny%>"
+        />
+        <div class="horizontal">
+          <div class="vertical">
+            <label for="quantity-sell">Normal Quantity:</label>
+            <input
+              type="number"
+              id="quantity-sell"
+              name="quantity-sell"
+              min="0"
+              max="<%= pokemon.quantity %>"
+            />
+          </div>
+          <div class="vertical">
+            <label for="quantity-shiny-sell">Shiny Quantity:</label>
+            <input
+              type="number"
+              id="quantity-shiny-sell"
+              name="quantity-shiny-sell"
+              min="0"
+              max="<%= pokemon.quantity_shiny %>"
+            />
+          </div>
+        </div>
+        <div class="horizontal">
+          <button id="cancel" formmethod="get" formaction="/sell">
+            Cancel
+          </button>
+          <button id="sell-button">Sell</button>
+          <button class="confirmation hide">Confirm?</button>
+        </div>
+      </form>
+      <p id="warning" class="confirmation hide">
+        Warning: this action cannot be undone!
+      </p>
+      <% } %>
+    </section>
+    <%- include("../partials/footer.ejs")%>
+    <!-- Import scripts -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+      integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script src="/scripts/sell.js" charset="utf-8"></script>
   </body>
 </html>

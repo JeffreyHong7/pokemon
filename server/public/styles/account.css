@@ -50,6 +50,7 @@ ul {
   margin-top: 2rem;
   height: 45vh;
 }
+
 #no-pokemon h1 {
   margin: 0;
   color: #29318b;
@@ -57,6 +58,7 @@ ul {
   font-weight: 700;
   font-style: normal;
 }
+
 #account-buttons {
   margin: 2rem 0 2rem 0;
   display: flex;
@@ -69,6 +71,7 @@ ul {
   font-family: "Roboto", sans-serif;
   font-weight: 700;
   font-style: normal;
+  font-size: 1rem;
   height: 5vh;
   width: 10vw;
   background-color: #d5e6f6;
